@@ -21,18 +21,21 @@ import Claims from './pages/Claims'
 import VerifyRelease from './pages/VerifyRelease'
 
 export default function App() {
-  const [state, setState] =
-    useState({
-      loading: true,
-      session: null,
-      isAdmin: false,
-    })
+  const [state, setState] = useState({
+    loading: true,
+    session: null,
+    isAdmin: false,
+  })
 
   // ============================================================
-  // CHECK SESSION + ADMIN ROLE
+  // RESOLVE CURRENT SESSION
   // ============================================================
 
   async function resolve(session) {
+    // ----------------------------------------------------------
+    // NO SESSION
+    // ----------------------------------------------------------
+
     if (!session) {
       setState({
         loading: false,
@@ -42,6 +45,10 @@ export default function App() {
 
       return
     }
+
+    // ----------------------------------------------------------
+    // CHECK PROFILE ROLE
+    // ----------------------------------------------------------
 
     const {
       data,
@@ -54,6 +61,10 @@ export default function App() {
         session.user.id,
       )
       .single()
+
+    // ----------------------------------------------------------
+    // NOT ADMIN
+    // ----------------------------------------------------------
 
     if (
       error ||
@@ -70,6 +81,10 @@ export default function App() {
       return
     }
 
+    // ----------------------------------------------------------
+    // VALID ADMIN
+    // ----------------------------------------------------------
+
     setState({
       loading: false,
       session,
@@ -78,21 +93,47 @@ export default function App() {
   }
 
   // ============================================================
-  // AUTH LISTENER
+  // AUTH SESSION LISTENER
   // ============================================================
 
   useEffect(() => {
+    let mounted = true
+
+    // ----------------------------------------------------------
+    // INITIAL SESSION
+    // ----------------------------------------------------------
+
     supabase.auth
       .getSession()
       .then(
         ({
           data,
         }) => {
-          resolve(
-            data.session,
-          )
+          if (mounted) {
+            resolve(
+              data.session,
+            )
+          }
         },
       )
+      .catch((error) => {
+        console.error(
+          'Session error:',
+          error,
+        )
+
+        if (mounted) {
+          setState({
+            loading: false,
+            session: null,
+            isAdmin: false,
+          })
+        }
+      })
+
+    // ----------------------------------------------------------
+    // AUTH CHANGES
+    // ----------------------------------------------------------
 
     const {
       data: {
@@ -105,14 +146,22 @@ export default function App() {
             _event,
             session,
           ) => {
-            resolve(
-              session,
-            )
+            if (mounted) {
+              resolve(
+                session,
+              )
+            }
           },
         )
 
-    return () =>
+    // ----------------------------------------------------------
+    // CLEANUP
+    // ----------------------------------------------------------
+
+    return () => {
+      mounted = false
       subscription.unsubscribe()
+    }
   }, [])
 
   // ============================================================
@@ -127,9 +176,15 @@ export default function App() {
     )
   }
 
-  const ok =
-    state.session &&
-    state.isAdmin
+  // ============================================================
+  // ADMIN CHECK
+  // ============================================================
+
+  const isAuthenticatedAdmin =
+    Boolean(
+      state.session &&
+      state.isAdmin,
+    )
 
   // ============================================================
   // ROUTES
@@ -138,12 +193,14 @@ export default function App() {
   return (
     <Routes>
 
-      {/* LOGIN */}
+      {/* ======================================================
+          LOGIN
+      ====================================================== */}
 
       <Route
         path="/login"
         element={
-          ok
+          isAuthenticatedAdmin
             ? (
               <Navigate
                 to="/"
@@ -156,11 +213,13 @@ export default function App() {
         }
       />
 
-      {/* ADMIN ROUTES */}
+      {/* ======================================================
+          PROTECTED ADMIN AREA
+      ====================================================== */}
 
       <Route
         element={
-          ok
+          isAuthenticatedAdmin
             ? (
               <Shell />
             )
@@ -173,53 +232,75 @@ export default function App() {
         }
       >
 
+        {/* DASHBOARD */}
+
         <Route
-          path="/"
+          index
           element={
             <Dashboard />
           }
         />
 
+        {/* REPORTS */}
+
         <Route
-          path="/reports"
+          path="reports"
           element={
             <Reports />
           }
         />
 
+        {/* MATCHES */}
+
         <Route
-          path="/matches"
+          path="matches"
           element={
             <Matches />
           }
         />
 
+        {/* CLAIMS */}
+
         <Route
-          path="/claims"
+          path="claims"
           element={
             <Claims />
           }
         />
 
-        {/* QR VERIFICATION */}
+        {/* VERIFY QR / RELEASE ITEM */}
 
         <Route
-          path="/qr-verification"
+          path="qr-verification"
           element={
             <VerifyRelease />
           }
         />
 
+        {/* OPTIONAL OLD ROUTE REDIRECT */}
+
+        <Route
+          path="verify"
+          element={
+            <Navigate
+              to="/qr-verification"
+              replace
+            />
+          }
+        />
+
       </Route>
 
-      {/* UNKNOWN ROUTE */}
+      {/* ======================================================
+          UNKNOWN ROUTES
+      ====================================================== */}
 
       <Route
         path="*"
         element={
           <Navigate
             to={
-              ok
+              isAuthenticatedAdmin
                 ? '/'
                 : '/login'
             }

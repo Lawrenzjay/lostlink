@@ -7,5 +7,7 @@ export default function Shell(){return <div className="app-shell"><aside classNa
 <NavLink to="/reports"><FileSearch size={18}/>Reports</NavLink>
 <NavLink to="/matches"><GitCompareArrows size={18}/>Matches</NavLink>
 <NavLink to="/claims"><BadgeCheck size={18}/>Claims</NavLink>
-<NavLink to="/verify"><QrCode size={18}/>Verify QR</NavLink>
+<NavLink to="/qr-verification">
+  Verify QR
+</NavLink>
 </nav><button className="logout" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/>Sign out</button></aside><main><Outlet/></main></div>}
