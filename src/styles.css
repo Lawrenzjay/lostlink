@@ -2652,3 +2652,15 @@ td small {
 .clickable-stat:active {
   transform: scale(0.99);
 }
+
+.lostlink-swal {
+  border-radius: 24px !important;
+  padding: 24px !important;
+}
+
+.lostlink-swal-confirm,
+.lostlink-swal-cancel {
+  border-radius: 12px !important;
+  padding: 11px 20px !important;
+  font-weight: 700 !important;
+}
